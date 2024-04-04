@@ -1,0 +1,86 @@
+# Default values for demo-java.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+applicationci: ucd
+
+environment:  dev
+
+image:
+  repository: artifactorycloud.ual.com/v-docker/ucd/ucd-msgproc-sol-pnrlinking
+  pullPolicy: Always
+  tag: 0.0.3
+tracing:
+  datadog:
+    env:  dev
+env: 
+  service_name: ucd-sol-msgproc-pnrlinking-dev
+  
+imagePullSecrets: [{name: artifactorycloud}]
+nameOverride: ucd-sol-msgproc-pnrlinking-dev
+fullnameOverride: ucd-sol-msgproc-pnrlinking-dev
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: NodePort
+  port: 80
+
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: merge
+    merge.ingress.kubernetes.io/config: merged-ingress
+  hosts:
+    - host: traveldes-ucd-sol-msgproc-pnrlinking.emp.us-east-1.dev.aws.ual.com
+      paths: {/*}
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 500m
+    memory: 2048Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  averageUtilization: 70
+verticalscaling: 
+  enabled: false
+  minCpu: 100m
+  minMemory: 256Mi
+  maxCpu: 500m
+  maxMemory: 2048Mi
+#nodeSelector: 
+# applicationci: ucd
+
+tolerations: []
+
+affinity: {}
+

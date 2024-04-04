@@ -1,0 +1,90 @@
+# Default values for demo-java.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+applicationci: ucd
+
+environment:  stg
+
+image:
+  repository: artifactorycloud.ual.com/v-docker/ucd/ucd-msgproc-cntrblty-pnr
+  pullPolicy: Always
+  tag: 1.0.17
+  
+tracing:
+  datadog:
+    env: preprod
+    
+env: 
+  asp_environment: CLOUDPREPROD
+  service_name: ucd-sol-msgproc-pnrlinking-preprod
+  
+imagePullSecrets: [{ name: artifactorycloud }]
+nameOverride: "ucd-sol-msgproc-pnrlinking-preprod"
+fullnameOverride: "ucd-sol-msgproc-pnrlinking-preprod"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: NodePort
+  port: 80
+
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: merge
+    merge.ingress.kubernetes.io/config: merged-ingress
+  hosts:
+    - host: traveldes-ucd-sol-msgproc-pnrlinking.emp.preprod.aws.ual.com
+      paths: {/*}
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  
+  limits:
+    cpu: 4000m
+    memory: 4096Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 2
+  averageUtilization: 70
+verticalscaling: 
+  enabled: true
+  minMemory: 512Mi
+  minCpu: 500m
+  maxMemory: 4096Mi
+  maxCpu: 4000m
+
+#nodeSelector:
+  #applicationci: ucd
+
+tolerations: []
+
+affinity: {}
+

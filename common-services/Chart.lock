@@ -1,0 +1,6 @@
+dependencies:
+- name: ucd-service
+  repository: file://charts/ucd-service
+  version: 0.1.0
+digest: sha256:2c48ec6748d2c28af0da34a23df20bc74e965bfde3a64215e513b9d585874ea3
+generated: "2024-04-02T12:32:47.980268426Z"
