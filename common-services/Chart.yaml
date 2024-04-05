@@ -27,3 +27,7 @@ dependencies:
     version: 0.1.0
     repository: file://charts/ucd-service
     enabled: true
+  - name: aciflightstatus-adapter
+    version: v1.3.3
+    repository: file://charts/aciflightstatus-adapter
+    enabled: true
