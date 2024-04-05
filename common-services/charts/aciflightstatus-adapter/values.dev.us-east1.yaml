@@ -1,0 +1,255 @@
+# kind -- DaemonSet or Deployment
+kind: Deployment
+
+# applicationci -- the 3-letter applicationci for the app being deployed 
+applicationci: &appci <+variable.ApplicationCI>
+
+# replicaCount -- Only applicable if kind=Deployment
+replicaCount: 1
+
+image:
+  repository: artifactorycloud.ual.com/v-docker/<+artifact.artifactPath>
+  pullPolicy: IfNotPresent
+  tag: <+artifact.tag>
+
+imagePullSecrets: 
+  - name: artifactorycloudconnector
+nameOverride: &service_name "seats-inventory-aciflightstatus-prd"
+fullnameOverride: *service_name 
+
+cluster_name: &cluster_name <+infra.name>
+healthcheck_path: &healthcheck_path "/health"
+healthcheck_port: &healthcheck_port http
+
+env:
+  # Application related Environment variables
+  ASPNETCORE_ENVIRONMENT: Production
+  # Data Dog Environment Variables
+  # Refer to: https://team.ual.com/collab/CloudOps/_layouts/15/start.aspx#/datadog/Datadog%20Agent%20Configuration.aspx
+  DD_APM_ENV: <+variable.ApplicationCI>-<+env.name> # combination of App CI and Environment
+  DD_APM_IGNORE_RESOURCES: (GET|POST) /swagger/*, (GET|POST) /metrics, GET /health, GET /
+  DD_TAGS: applicationci:<+variable.ApplicationCI>
+  DD_TRACE_GLOBAL_TAGS: applicationci:<+variable.ApplicationCI>
+  DD_TRACE_SAMPLE_RATE: 1
+  DD_RUNTIME_METRICS_ENABLED: true
+  DD_LOGS_INJECTION: true
+  # These variables are already defined in the '_pod.tpl' template file on line 33
+  # DD_AGENT_HOST: status.hostIP
+  # DD_VERSION: {{ .Values.image.tag | qoute }}
+  # DD_SERVICE_NAME: {{ .Values.applicationci }}-{{ include "service-name.fullname" . }}
+
+envFrom: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name:
+
+rbac:
+  create: false
+
+podSecurityPolicy:
+  create: false
+  annotations: {}
+
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+dnsConfig: {}
+  # nameservers:
+  #   - 1.2.3.4
+  # searches:
+  #   - ns1.svc.cluster-domain.example
+  #   - my.dns.search.suffix
+  # options:
+  #   - name: ndots
+#     value: "2"
+#   - name: edns0
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: NodePort
+  port: 80
+  externalTrafficPolicy: Local
+
+  labels:
+    {}
+  annotations:
+    {}
+    # prometheus.io/path: "/api/v1/metrics/prometheus"
+    # prometheus.io/port: "2020"
+    # prometheus.io/scrape: "true"
+
+tolerations: []
+
+affinity: {}
+
+podAnnotations: {}
+
+podLabels: 
+  # {}
+  applicationci: *appci
+
+priorityClassName: ""
+
+extraContainers: []
+  # - name: do-something
+  #   image: busybox
+  #   command: ['do', 'something']
+
+ports:
+   - name: http
+     containerPort: 8080
+     protocol: TCP
+
+extraVolumes: |
+  # - name: varlibdockercontainers
+  #   hostPath:
+  #     path: /var/lib/docker/containers
+extraVolumeMounts: |
+  # - name: varlibdockercontainers
+  #   mountPath: /var/lib/docker/containers
+  #   readOnly: true
+# The config volume is mounted by default, either to the existingConfigMap value, or the default of "fluent-bit.fullname"
+volumeMounts: |
+  # - name: varlibdockercontainers
+  #   mountPath: /var/lib/docker/containers
+  #   readOnly: true
+# Make use of a pre-defined configmap instead of the one templated here
+existingConfigMap: ""
+
+networkPolicy:
+  enabled: false
+  # ingress:
+  #   from: []
+
+updateStrategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxUnavailable: 1
+  
+args: []
+
+command: []
+
+initContainers: []
+  # - name: do-something
+  #   image: busybox
+  #   command: ['do', 'something']
+  
+# ingress -- For apps that need a loadbalancer to direct traffic
+ingress:
+  enabled: false
+  # labels: 
+  #   key : value
+  annotations: 
+    alb.ingress.kubernetes.io/group.name: *cluster_name
+    alb.ingress.kubernetes.io/healthcheck-path: *healthcheck_path
+    external-dns.alpha.kubernetes.io/access: private
+    external-dns.alpha.kubernetes.io/ingress-hostname-source: annotation-only
+    external-dns.alpha.kubernetes.io/set-identifier: seats-inventory-aciflightstatus-prd
+    external-dns.alpha.kubernetes.io/hostname: "seats-inventory-aciflightstatus.prd.cpn.aws.ual.com"
+    external-dns.alpha.kubernetes.io/target: "seats-inventory-aciflightstatus.us-east-1.prd.cpn.aws.ual.com" 
+    external-dns.alpha.kubernetes.io/ttl: '60'
+    external-dns.alpha.kubernetes.io/aws-weight: '10'
+  # tls:
+  #   - secretName: kubernetes-dashboard-tls
+  #     hosts:
+  #       - kubernetes-dashboard.domain.com
+  ##
+  ## Must be provided if Ingress is enabled
+  ##
+  hosts:
+    - seats-inventory-aciflightstatus.us-east-1.prd.cpn.aws.ual.com
+    - seats-inventory-aciflightstatus.*prd.cpn.aws.ual.com
+  paths:
+    - /*
+    # - /
+  ##
+  customPaths: []
+  #  - backend:
+  #      serviceName: ssl-redirect
+  #      servicePort: use-annotation
+  #  - backend:
+  #      serviceName: >-
+  #        {{ include "kubernetes-dashboard.fullname" . }}
+  #      # Don't use string here, use only integer value!
+  #      servicePort: 443
+
+# autoscaling -- Only applicable if kind=Deployment
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+    # type: Object
+    # object:
+    #     name: requests-per-second
+    #   describedObject:
+    #     apiVersion: networking.k8s.io/v1beta1
+    #     kind: Ingress
+    #     name: main-route
+    #   target:
+    #     type: Value
+    #     value: 10k
+  scaleDown:
+    stabilizationWindowSeconds: 300
+    selectPolicy: # Options are: Min, Max, Disabled; Default is Max
+    policies:
+    - type: Percent
+      value: 50 
+      periodSeconds: 15
+    - type: Pods
+      value: 1
+      periodSeconds: 60
+  scaleUp:
+    stabilizationWindowSeconds: 15
+    selectPolicy: # Options are: Min, Max, Disabled; Default is Max
+    policies:
+    - type: Percent
+      value: 70
+      periodSeconds: 15
+    - type: Pods
+      value: 1
+      periodSeconds: 60
+
+livenessProbe: #{}
+  httpGet:
+    path: *healthcheck_path
+    port: *healthcheck_port
+  initialDelaySeconds: 30
+  periodSeconds: 15
+
+readinessProbe: #{}
+  httpGet:
+    path: *healthcheck_path
+    port: *healthcheck_port
+  initialDelaySeconds: 30
+  periodSeconds: 15
+
+resources: #{}
+  limits:
+    cpu: 800m
+    memory: 512Mi
+  requests:
+    cpu: 800m
+    memory: 512Mi
+
+nodeSelector: #{}
+  applicationci: <+variable.ApplicationCI>
+  # nodearchtype: amd
+  
+
